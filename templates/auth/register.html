@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Register — ML AutoGrader{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-5">
+        <div class="card shadow">
+            <div class="card-header bg-dark text-white text-center py-3">
+                {% if role == 'student' %}
+                    <h4 class="mb-0">Student Registration</h4>
+                {% else %}
+                    <h4 class="mb-0">Faculty Registration</h4>
+                    <small class="text-warning">Requires admin approval before login</small>
+                {% endif %}
+            </div>
+            <div class="card-body p-4">
+                {% if role == 'student' %}
+                <form method="POST" action="{{ url_for('register_student') }}">
+                {% else %}
+                <form method="POST" action="{{ url_for('register_teacher') }}">
+                {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            {% if role == 'student' %}Full Name{% else %}Faculty Name{% endif %}
+                        </label>
+                        <input type="text" name="name" class="form-control" required autofocus>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+
+                    {% if role == 'student' %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Enrollment Number</label>
+                        <input type="text" name="enrollment_no" class="form-control" required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label class="form-label fw-semibold">Branch</label>
+                            <input type="text" name="branch" class="form-control" placeholder="e.g. CSE">
+                        </div>
+                        <div class="col">
+                            <label class="form-label fw-semibold">Batch</label>
+                            <input type="text" name="batch" class="form-control" placeholder="e.g. 2022–26">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Password</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-dark w-100">
+                        {% if role == 'student' %}Create Account{% else %}Submit for Approval{% endif %}
+                    </button>
+                </form>
+            </div>
+            <div class="card-footer text-center py-3 bg-light">
+                <small>Already registered? <a href="{{ url_for('login') }}">Sign in</a></small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

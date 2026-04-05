@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Admin Panel</h2>
+
+<ul class="nav nav-tabs mb-4" id="adminTabs">
+    <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pending">
+            ⏳ Pending Approvals
+            {% if pending_teachers %}
+                <span class="badge bg-danger ms-1">{{ pending_teachers | length }}</span>
+            {% endif %}
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#teachers">
+            👩‍🏫 Approved Faculty
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#assignments">
+            📋 All Assignments
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+    <!-- Pending Approvals -->
+    <div class="tab-pane fade show active" id="pending">
+        {% if pending_teachers %}
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for teacher in pending_teachers %}
+                        <tr>
+                            <td>{{ teacher.name }}</td>
+                            <td>{{ teacher.email }}</td>
+                            <td class="d-flex gap-2">
+                                <form method="POST" action="{{ url_for('approve_teacher', user_id=teacher.id) }}">
+                                    <button class="btn btn-success btn-sm">✔ Approve</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('reject_teacher', user_id=teacher.id) }}">
+                                    <button class="btn btn-danger btn-sm">✘ Reject</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted">No pending approvals.</p>
+        {% endif %}
+    </div>
+
+    <!-- Approved Teachers -->
+    <div class="tab-pane fade" id="teachers">
+        {% if approved_teachers %}
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for teacher in approved_teachers %}
+                        <tr>
+                            <td>{{ teacher.name }}</td>
+                            <td>{{ teacher.email }}</td>
+                            <td>
+                                <a href="{{ url_for('admin_view_teacher', teacher_id=teacher.id) }}"
+                                   class="btn btn-outline-primary btn-sm">View Dashboard</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted">No approved faculty yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- All Assignments -->
+    <div class="tab-pane fade" id="assignments">
+        {% if all_assignments %}
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Title</th>
+                            <th>Task Type</th>
+                            <th>Due Date</th>
+                            <th>Created By</th>
+                            <th>Status</th>
+                            <th>Submissions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in all_assignments %}
+                        <tr>
+                            <td>{{ a.title }}</td>
+                            <td><span class="badge bg-secondary">{{ a.task_type }}</span></td>
+                            <td>{{ a.due_date }}</td>
+                            <td>{{ a.creator.name }}</td>
+                            <td>
+                                {% if a.grading_status == 'completed' %}
+                                    <span class="badge bg-success">Graded</span>
+                                {% elif a.grading_status == 'grading' %}
+                                    <span class="badge bg-warning text-dark">Grading...</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ a.submissions | length }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted">No assignments created yet.</p>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

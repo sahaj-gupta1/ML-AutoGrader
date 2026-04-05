@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% block title %}Results — {{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-outline-secondary btn-sm">← Back</a>
+    <div>
+        <h3 class="mb-0">{{ assignment.title }}</h3>
+        <small class="text-muted">
+            {{ assignment.task_type }} &nbsp;·&nbsp;
+            Due: {{ assignment.due_date }} &nbsp;·&nbsp;
+            Max Score: {{ assignment.max_score }} pts
+        </small>
+    </div>
+</div>
+
+{% set graded_subs = submissions | selectattr('status', 'equalto', 'graded') | list %}
+{% set total_subs  = submissions | length %}
+{% if graded_subs %}
+    {% set avg_score = (graded_subs | sum(attribute='score')) / graded_subs | length %}
+{% else %}
+    {% set avg_score = 0 %}
+{% endif %}
+
+<!-- Summary cards -->
+<div class="row mb-4 g-3">
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-0 bg-dark text-white">
+            <div class="card-body"><h2 class="mb-0">{{ total_subs }}</h2><small>Submissions</small></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-0 bg-success text-white">
+            <div class="card-body"><h2 class="mb-0">{{ graded_subs | length }}</h2><small>Graded</small></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-0 bg-primary text-white">
+            <div class="card-body"><h2 class="mb-0">{{ "%.1f" | format(avg_score) }}</h2><small>Class Average</small></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-0 bg-secondary text-white">
+            <div class="card-body"><h2 class="mb-0">{{ assignment.max_score }}</h2><small>Max Possible</small></div>
+        </div>
+    </div>
+</div>
+
+<div class="mb-3">
+    <input type="text" id="resultSearch" class="form-control"
+           placeholder="Search by name or enrollment no...">
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0" id="resultsTable">
+            <thead class="table-dark">
+                <tr>
+                    <th>Enrollment No.</th>
+                    <th>Student Name</th>
+                    <th>Score</th>
+                    <th>Steps Detected</th>
+                    <th>Penalties</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in submissions %}
+                {% set student = students[sub.student_id] %}
+                <tr>
+                    <td class="enroll">{{ student.enrollment_no }}</td>
+                    <td class="sname">{{ student.name }}</td>
+                    <td>
+                        {% if sub.score is not none %}
+                            <strong>{{ sub.score }} / {{ sub.max_score }}</strong>
+                            <div class="progress mt-1" style="height:5px">
+                                <div class="progress-bar bg-success"
+                                     style="width:{{ ((sub.score/sub.max_score)*100)|round }}%"></div>
+                            </div>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% for step in sub.timeline %}
+                            <span class="badge bg-dark me-1 mb-1">{{ step }}</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% set penalty_count = sub.penalties | length %}
+                        {% if penalty_count > 0 %}
+                            <span class="badge bg-danger">{{ penalty_count }} penalty</span>
+                        {% else %}
+                            <span class="badge bg-success">None</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if sub.status == 'graded' %}
+                        <button class="btn btn-outline-primary btn-sm"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#detail-{{ sub.id }}">
+                            View Feedback
+                        </button>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+
+                {% if sub.status == 'graded' %}
+                <tr class="collapse" id="detail-{{ sub.id }}">
+                    <td colspan="6">
+                        <div class="p-3 bg-light border rounded">
+
+                            <!-- Score breakdown with sub-task detail -->
+                            <h6 class="fw-bold mb-3">Score Breakdown</h6>
+                            <div class="row g-2 mb-3">
+                                {% for step, pts in sub.scores_breakdown.items() %}
+                                {% set max_pts = assignment.rubric.get(step, {}).get('points', 0) %}
+                                {% set detail  = sub.result.get('step_detail', {}).get(step, {}) %}
+                                <div class="col-md-4 col-lg-3">
+                                    <div class="card border-0 shadow-sm p-2">
+                                        <small class="text-muted">{{ step.replace('_',' ') | title }}</small>
+                                        <strong class="{% if pts == max_pts %}text-success{% elif pts == 0 %}text-danger{% else %}text-warning{% endif %}">
+                                            {{ pts }} / {{ max_pts }}
+                                        </strong>
+                                        {% set is_missed = step in sub.result.get('missed_steps', []) %}
+                                        {% if is_missed %}
+                                        <small class="text-danger d-block mt-1">✘ Not attempted</small>
+                                        {% else %}
+                                        {% if detail.get('completed_subtasks') %}
+                                        <div class="mt-1">
+                                            {% for done in detail.completed_subtasks %}
+                                            <small class="text-success d-block">✔ {{ done.replace('_',' ') }}</small>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                        {% if detail.get('missed_subtasks') %}
+                                        <div class="mt-1">
+                                            {% for miss in detail.missed_subtasks %}
+                                            <small class="text-danger d-block">✘ {{ miss }}</small>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Penalties and notes -->
+                            {% set real_penalties = sub.penalties %}
+                            {% if real_penalties %}
+                            <h6 class="fw-bold mb-2">⚠ Issues &amp; Notes</h6>
+                            <ul class="mb-3 list-unstyled">
+                                {% for p in real_penalties %}
+                                <li class="small mb-1">
+                                    {% if p.severity == 'critical' %}
+                                        <span class="badge bg-danger me-1">🔴 Critical</span>
+                                    {% elif p.severity == 'major' %}
+                                        <span class="badge bg-warning text-dark me-1">🟡 Major</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary me-1">ℹ Info</span>
+                                    {% endif %}
+                                    {{ p.message }}
+                                    {% if p.penalty > 0 %}
+                                        <strong class="text-danger"> (-{{ p.penalty }} pts)</strong>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+
+                            <!-- AI Feedback -->
+                            <div class="row g-3">
+                                {% if sub.feedback.get('strengths') %}
+                                <div class="col-md-4">
+                                    <div class="card border-success h-100">
+                                        <div class="card-header bg-success text-white small fw-bold">✔ Strengths</div>
+                                        <ul class="list-group list-group-flush">
+                                            {% for s in sub.feedback.get('strengths',[]) %}
+                                            <li class="list-group-item small">{{ s }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% if sub.feedback.get('weaknesses') %}
+                                <div class="col-md-4">
+                                    <div class="card border-danger h-100">
+                                        <div class="card-header bg-danger text-white small fw-bold">✘ Weaknesses</div>
+                                        <ul class="list-group list-group-flush">
+                                            {% for w in sub.feedback.get('weaknesses',[]) %}
+                                            <li class="list-group-item small">{{ w }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% if sub.feedback.get('improvements') %}
+                                <div class="col-md-4">
+                                    <div class="card border-primary h-100">
+                                        <div class="card-header bg-primary text-white small fw-bold">→ How to Improve</div>
+                                        <ul class="list-group list-group-flush">
+                                            {% for i in sub.feedback.get('improvements',[]) %}
+                                            <li class="list-group-item small">{{ i }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+
+                {% if not submissions %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No submissions yet.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('resultSearch').addEventListener('keyup', function () {
+    const filter = this.value.toLowerCase();
+    document.querySelectorAll('#resultsTable tbody tr').forEach(row => {
+        if (!row.classList.contains('collapse')) {
+            const e = row.querySelector('.enroll')?.textContent.toLowerCase() || '';
+            const n = row.querySelector('.sname')?.textContent.toLowerCase()  || '';
+            row.style.display = (e.includes(filter) || n.includes(filter)) ? '' : 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,93 @@
+/* ── General ───────────────────────────────────────────── */
+body {
+    font-size: 0.92rem;
+}
+
+.navbar-brand {
+    letter-spacing: 0.5px;
+}
+
+/* ── Cards ─────────────────────────────────────────────── */
+.card {
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+/* ── Tables ────────────────────────────────────────────── */
+.table th {
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* ── Badges ────────────────────────────────────────────── */
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+/* ── Rubric builder rows ───────────────────────────────── */
+.rubric-row {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+}
+
+.rubric-row:hover {
+    border-color: #adb5bd;
+}
+
+/* ── Progress bars ─────────────────────────────────────── */
+.progress {
+    border-radius: 10px;
+    background: #e9ecef;
+}
+
+/* ── Feedback cards ────────────────────────────────────── */
+.list-group-item {
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+/* ── Score display on student grades page ──────────────── */
+.display-4 {
+    font-size: 3rem;
+}
+
+/* ── Collapse feedback row ─────────────────────────────── */
+tr.collapse td {
+    background: #f8f9fa;
+}
+
+/* ── Toast notification ────────────────────────────────── */
+.toast {
+    min-width: 280px;
+}
+
+/* ── Auth cards ────────────────────────────────────────── */
+.card .card-footer {
+    border-radius: 0 0 10px 10px !important;
+}
+
+/* ── Nav tabs ──────────────────────────────────────────── */
+.nav-tabs .nav-link {
+    color: #495057;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    font-weight: 600;
+    border-bottom: 2px solid #212529;
+    color: #212529;
+}

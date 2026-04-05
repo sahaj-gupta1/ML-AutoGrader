@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">My Assignments</h2>
+        <small class="text-muted">
+            {{ current_user.name }} &nbsp;·&nbsp;
+            {{ current_user.enrollment_no }} &nbsp;·&nbsp;
+            {{ current_user.branch }} {{ current_user.batch }}
+        </small>
+    </div>
+    <a href="{{ url_for('my_grades') }}" class="btn btn-outline-success">📊 My Grades</a>
+</div>
+
+{% if assignments %}
+    {% for assignment in assignments %}
+    {% set sub = sub_dict.get(assignment.id) %}
+
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ assignment.title }}</strong>
+                <span class="badge bg-secondary ms-2">{{ assignment.task_type }}</span>
+            </div>
+            <small class="{% if assignment.is_past_deadline %}text-danger{% else %}text-warning{% endif %}">
+                {% if assignment.is_past_deadline %}⛔ Deadline passed{% else %}Due: {{ assignment.due_date }}{% endif %}
+            </small>
+        </div>
+
+        <div class="card-body">
+            <p class="mb-3">{{ assignment.description }}</p>
+
+            <!-- Rubric -->
+            <div class="mb-3">
+                <button class="btn btn-outline-secondary btn-sm"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#rubric-{{ assignment.id }}">
+                    📋 View Grading Rubric
+                </button>
+                <div class="collapse mt-2" id="rubric-{{ assignment.id }}">
+                    <div class="card card-body bg-light p-2">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Step</th>
+                                    <th class="text-end">Marks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for step, info in assignment.rubric.items() %}
+                                <tr>
+                                    <td>{{ step.replace('_', ' ') | title }}</td>
+                                    <td class="text-end"><strong>{{ info.points }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-dark">
+                                    <td><strong>Total</strong></td>
+                                    <td class="text-end"><strong>{{ assignment.max_score }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submission area -->
+            {% if sub %}
+                <div class="alert {% if sub.status == 'graded' %}alert-success{% else %}alert-info{% endif %} py-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span>
+                            {% if sub.status == 'graded' %}
+                                ✅ Submitted and graded
+                            {% else %}
+                                📤 Submitted — awaiting grading
+                            {% endif %}
+                        </span>
+                        <!-- View and Download submitted file -->
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('view_submission', sub_id=sub.id) }}"
+                               class="btn btn-sm btn-outline-dark">👁 View My Code</a>
+                            <a href="{{ url_for('download_submission', sub_id=sub.id) }}"
+                               class="btn btn-sm btn-outline-secondary">⬇ Download</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resubmit form if deadline not passed -->
+                {% if not assignment.is_past_deadline %}
+                <form action="{{ url_for('submit_assignment', assign_id=assignment.id) }}"
+                      method="POST" enctype="multipart/form-data"
+                      class="d-flex align-items-center gap-2 mt-2">
+                    <input type="file" name="notebook" class="form-control form-control-sm"
+                           accept=".ipynb" required>
+                    <button type="submit" class="btn btn-warning btn-sm px-3">🔄 Resubmit</button>
+                </form>
+                <small class="text-muted d-block mt-1">
+                    You can resubmit before the deadline. Your previous submission will be replaced.
+                </small>
+                {% endif %}
+
+            {% elif assignment.is_past_deadline %}
+                <div class="alert alert-danger mb-0 py-2">
+                    ⛔ Deadline has passed. Submission is closed.
+                </div>
+
+            {% else %}
+                <form action="{{ url_for('submit_assignment', assign_id=assignment.id) }}"
+                      method="POST" enctype="multipart/form-data"
+                      class="d-flex align-items-center gap-2">
+                    <input type="file" name="notebook" class="form-control"
+                           accept=".ipynb" required>
+                    <button type="submit" class="btn btn-success px-4">Upload</button>
+                </form>
+                <small class="text-muted mt-1 d-block">
+                    Upload your completed .ipynb notebook file.
+                </small>
+            {% endif %}
+
+        </div>
+    </div>
+    {% endfor %}
+
+{% else %}
+<div class="text-center py-5 text-muted">
+    <h5>No assignments posted yet.</h5>
+    <p>Check back later.</p>
+</div>
+{% endif %}
+{% endblock %}

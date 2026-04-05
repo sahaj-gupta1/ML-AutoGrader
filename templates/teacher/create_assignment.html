@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Create Assignment{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-outline-secondary btn-sm">← Back</a>
+    <h3 class="mb-0">Create New Assignment</h3>
+</div>
+
+<form method="POST" action="{{ url_for('create_assignment') }}" enctype="multipart/form-data" id="assignForm">
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white fw-semibold">📋 Assignment Details</div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">Assignment Title</label>
+                    <input type="text" name="title" class="form-control"
+                           placeholder="e.g. Lab 1: Wine Quality Classification" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Due Date</label>
+                    <input type="date" name="due_date" class="form-control" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Instructions for Students</label>
+                <textarea name="description" class="form-control" rows="3"
+                          placeholder="Describe what the student needs to do..." required></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white fw-semibold">🧠 Task Type</div>
+        <div class="card-body">
+            <label class="form-label fw-semibold">Algorithm / Task Category</label>
+            <div class="d-flex gap-3 align-items-start">
+                <select id="taskTypeSelect" class="form-select" style="max-width:280px"
+                        onchange="handleTaskTypeChange(this.value)">
+                    <option value="">— Select type —</option>
+                    <option value="Classification">Classification</option>
+                    <option value="Regression">Regression</option>
+                    <option value="Clustering">Clustering</option>
+                    <option value="Custom">Custom (type below)</option>
+                </select>
+                <input type="text" id="customTaskInput"
+                       class="form-control" style="max-width:320px; display:none"
+                       placeholder="e.g. XGBoost Regression, K-Means Clustering...">
+                <input type="hidden" id="taskTypeHidden" name="task_type">
+            </div>
+            <small class="text-muted mt-2 d-block">
+                This label is passed to the AI grader so it understands what kind of ML task to expect.
+            </small>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white fw-semibold">⚙️ Grading Rubric</div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">
+                Add each step the student must complete and set the marks.
+                The grader will detect whether the student performed each step and award marks accordingly.
+                Total marks can be any number.
+            </p>
+            <div id="rubric-container"></div>
+            <button type="button" class="btn btn-outline-dark btn-sm mt-3" onclick="addRubricRow()">
+                + Add Step
+            </button>
+            <div class="mt-3 p-2 bg-light border rounded" id="rubric-preview-box" style="display:none">
+                <small class="text-muted">Total marks: <strong id="total-marks">0</strong></small>
+            </div>
+            <input type="hidden" name="rubric_json" id="hidden_rubric_json">
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white fw-semibold">📂 Dataset (Optional)</div>
+        <div class="card-body">
+            <input type="file" name="dataset" class="form-control" accept=".csv,.xlsx">
+            <small class="text-muted">
+                Upload the CSV dataset students will work on.
+                The AI grader will use the column names to better evaluate student code.
+            </small>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-dark btn-lg w-100">🚀 Publish Assignment</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/rubric_builder.js') }}"></script>
+{% endblock %}

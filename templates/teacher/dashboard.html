@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% block title %}Teacher Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>My Assignments</h2>
+    <a href="{{ url_for('create_assignment') }}" class="btn btn-dark">+ Create Assignment</a>
+</div>
+
+{% if assignments %}
+    {% for assignment in assignments %}
+
+    {% set total_subs  = assignment.submissions | length %}
+    {% set graded_subs = assignment.submissions | selectattr('status', 'equalto', 'graded') | list | length %}
+    {% set new_subs    = assignment.submissions | selectattr('status', 'equalto', 'submitted') | list | length %}
+
+    <div class="card mb-4 shadow-sm" id="assign-card-{{ assignment.id }}">
+
+        <!-- Header -->
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <strong>{{ assignment.title }}</strong>
+                <span class="badge bg-secondary">{{ assignment.task_type }}</span>
+                <span class="badge
+                    {% if assignment.grading_status == 'completed' %}bg-success
+                    {% elif assignment.grading_status == 'grading' %}bg-warning text-dark
+                    {% else %}bg-secondary{% endif %}"
+                    id="status-badge-{{ assignment.id }}">
+                    {% if assignment.grading_status == 'completed' %}Graded
+                    {% elif assignment.grading_status == 'grading' %}Grading...
+                    {% else %}Pending{% endif %}
+                </span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <small class="{% if assignment.is_past_deadline %}text-danger{% else %}text-warning{% endif %}">
+                    {% if assignment.is_past_deadline %}⛔ Deadline passed
+                    {% else %}Due: {{ assignment.due_date }}{% endif %}
+                </small>
+                <button class="btn btn-outline-light btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#deadlineModal{{ assignment.id }}">
+                    ✏️ Edit Deadline
+                </button>
+            </div>
+        </div>
+
+        <!-- FIX 2: Live progress bar shown when grading -->
+        <div id="progress-bar-{{ assignment.id }}"
+             class="px-3 pt-2 {% if assignment.grading_status != 'grading' %}d-none{% endif %}">
+            <div class="d-flex justify-content-between mb-1">
+                <small class="text-muted" id="progress-label-{{ assignment.id }}">Grading in progress...</small>
+                <small class="text-muted" id="progress-count-{{ assignment.id }}"></small>
+            </div>
+            <div class="progress mb-2" style="height:8px">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
+                     id="progress-fill-{{ assignment.id }}"
+                     style="width:0%"></div>
+            </div>
+            <!-- Per-student status list -->
+            <div id="progress-list-{{ assignment.id }}" class="mb-2" style="font-size:0.82rem"></div>
+        </div>
+
+        <!-- Stats -->
+        <div class="px-3 py-2 bg-light border-bottom d-flex gap-4">
+            <small class="text-muted">Total: <strong>{{ total_subs }}</strong></small>
+            <small class="text-muted">Graded: <strong class="text-success" id="graded-count-{{ assignment.id }}">{{ graded_subs }}</strong></small>
+            <small class="text-muted">Awaiting: <strong class="text-warning">{{ new_subs }}</strong></small>
+        </div>
+
+        <!-- Actions -->
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <input type="text"
+                   class="form-control form-control-sm w-50 search-input"
+                   placeholder="Search by name or enrollment no..."
+                   data-table="table-{{ assignment.id }}">
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary btn-sm grade-all-btn"
+                        id="grade-btn-{{ assignment.id }}"
+                        data-assign-id="{{ assignment.id }}"
+                        {% if assignment.grading_status == 'grading' %}disabled{% endif %}
+                        {% if new_subs == 0 and assignment.grading_status != 'grading' %}disabled title="No new submissions"{% endif %}>
+                    {% if assignment.grading_status == 'grading' %}
+                        ⏳ Grading...
+                    {% else %}
+                        🤖 Grade All{% if new_subs > 0 %} ({{ new_subs }} new){% endif %}
+                    {% endif %}
+                </button>
+                {% if graded_subs > 0 %}
+                <a href="{{ url_for('teacher_view_assignment', assign_id=assignment.id) }}"
+                   class="btn btn-success btn-sm">📊 View Results</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Submissions table -->
+        <table class="table table-hover mb-0" id="table-{{ assignment.id }}">
+            <thead class="table-light">
+                <tr>
+                    <th>Enrollment No.</th>
+                    <th>Student Name</th>
+                    <th>Branch</th>
+                    <th>Batch</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-{{ assignment.id }}">
+                {% for sub in assignment.submissions %}
+                {% set student = students.get(sub.student_id) %}
+                {% if student %}
+                <tr id="row-{{ sub.id }}">
+                    <td class="enroll">{{ student.enrollment_no }}</td>
+                    <td class="sname">{{ student.name }}</td>
+                    <td>{{ student.branch or '—' }}</td>
+                    <td>{{ student.batch  or '—' }}</td>
+                    <td id="status-{{ sub.id }}">
+                        {% if sub.status == 'graded' %}
+                            <span class="badge bg-success">Graded</span>
+                            {% if sub.score is not none %}
+                                <span class="ms-1 text-muted small">{{ sub.score }}/{{ sub.max_score }}</span>
+                            {% endif %}
+                        {% elif sub.status == 'grading' %}
+                            <span class="badge bg-warning text-dark">Grading...</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Submitted</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('view_submission', sub_id=sub.id) }}"
+                           class="btn btn-outline-dark btn-sm">👁 View</a>
+                        <a href="{{ url_for('download_submission', sub_id=sub.id) }}"
+                           class="btn btn-outline-secondary btn-sm">⬇ Download</a>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+                {% if not assignment.submissions %}
+                <tr><td colspan="6" class="text-center text-muted py-3">No submissions yet.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+    </div>
+
+    <!-- Edit Deadline Modal -->
+    <div class="modal fade" id="deadlineModal{{ assignment.id }}" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h6 class="modal-title">Edit Deadline</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('edit_deadline', assign_id=assignment.id) }}">
+                    <div class="modal-body">
+                        <label class="form-label small fw-semibold">New Due Date</label>
+                        <input type="date" name="new_due_date" class="form-control"
+                               value="{{ assignment.due_date }}" required>
+                        <small class="text-muted mt-1 d-block">
+                            Extending allows students to submit again.
+                        </small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-dark btn-sm">Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if assignment.grading_status == 'grading' %}
+    <script>
+        // Auto-start polling for this assignment if it was grading on page load
+        startPolling({{ assignment.id }}, {{ total_subs }});
+    </script>
+    {% endif %}
+
+    {% endfor %}
+
+{% else %}
+<div class="text-center py-5 text-muted">
+    <h5>No assignments yet.</h5>
+    <a href="{{ url_for('create_assignment') }}" class="btn btn-dark mt-2">Create your first assignment</a>
+</div>
+{% endif %}
+
+<!-- Toast -->
+<div id="grading-toast"
+     class="toast align-items-center text-white bg-primary border-0 position-fixed bottom-0 end-0 m-3"
+     role="alert" style="z-index:9999">
+    <div class="d-flex">
+        <div class="toast-body" id="grading-toast-msg">Grading started.</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
