@@ -1,5 +1,6 @@
 import os
 import json
+from flask_cors import CORS
 from flask import (
     Flask, render_template, request, redirect,
     url_for, flash, jsonify, session
@@ -16,6 +17,7 @@ from models import db, User, Assignment, Submission
 from grader_queue.grading_queue import start_grading
 
 app = Flask(__name__)
+CORS(app)
 app.config.from_object(Config)
 
 os.makedirs(os.path.join(Config.BASE_DIR, "instance"),    exist_ok=True)
@@ -563,4 +565,4 @@ if __name__ == "__main__":
             print(f"Admin account created: {Config.ADMIN_EMAIL}")
 
     print("Starting AutoGrader on http://127.0.0.1:5000")
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
