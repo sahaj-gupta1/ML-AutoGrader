@@ -73,7 +73,12 @@ class Assignment(db.Model):
 
     created_at   = db.Column(db.DateTime, default=datetime.utcnow)
 
-    submissions  = db.relationship("Submission", backref="assignment", lazy=True)
+    submissions = db.relationship(
+        "Submission",
+        backref="assignment",
+        cascade="all, delete-orphan"
+    )
+    
 
     @property
     def rubric(self):
@@ -95,6 +100,9 @@ class Assignment(db.Model):
 
     def __repr__(self):
         return f"<Assignment {self.title}>"
+
+
+    
 
 
 # ─────────────────────────────────────────────

@@ -359,6 +359,37 @@ def grading_status(assign_id):
     })
 
 
+@app.route("/delete_assignment/<int:assignment_id>", methods=["DELETE"])
+@login_required
+def delete_assignment(assignment_id):
+
+    if current_user.role != "teacher":
+        return {"error": "Unauthorized"}, 403
+
+    assignment = Assignment.query.get(assignment_id)
+
+    if not assignment:
+        return {"error": "Assignment not found"}, 404
+
+    # 🔥 ensure teacher owns assignment
+    if assignment.teacher_id != current_user.id:
+        return {"error": "Unauthorized"}, 403
+
+    submissions = Submission.query.filter_by(assignment_id=assignment_id).all()
+
+    for sub in submissions:
+        if hasattr(sub, "file_path") and sub.file_path:
+            if os.path.exists(sub.file_path):
+                os.remove(sub.file_path)
+
+        db.session.delete(sub)
+
+    db.session.delete(assignment)
+    db.session.commit()
+
+    return {"message": "Assignment deleted successfully"}
+
+
 @app.route("/teacher/edit_deadline/<int:assign_id>", methods=["POST"])
 @login_required
 def edit_deadline(assign_id):
